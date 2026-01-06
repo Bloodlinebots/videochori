@@ -1,135 +1,67 @@
 from pyrogram import Client, filters
-from pyrogram.errors import SessionPasswordNeeded, FloodWait
-from pyrogram.types import Message
+from pyrogram.errors import FloodWait
 import asyncio
 import os
 
+# ================= CONFIG =================
+BOT_TOKEN = os.environ.get("BOT_TOKEN")  # Control bot token
 BOT_API_ID = int(os.environ.get("BOT_API_ID"))
 BOT_API_HASH = os.environ.get("BOT_API_HASH")
+STRING_SESSION = os.environ.get("STRING_SESSION")  # Userbot string session
+# =========================================
 
+# BOT client (control bot)
 bot = Client(
-    "master_bot",
+    "control_bot",
+    bot_token=BOT_TOKEN,
     api_id=BOT_API_ID,
     api_hash=BOT_API_HASH
 )
 
-USERS = {}
+# USERBOT client (forward engine)
+userbot = Client(
+    "userbot",
+    session_string=STRING_SESSION,
+    api_id=BOT_API_ID,
+    api_hash=BOT_API_HASH
+)
 
-# ================= LOGIN FLOW =================
-
-@bot.on_message(filters.command("login") & filters.private)
-async def login_start(_, message: Message):
-    uid = message.from_user.id
-    USERS[uid] = {"step": "api_id"}
-    await message.reply("🔐 Login started\n\n📌 Send your API ID")
-
-@bot.on_message(filters.private & filters.text)
-async def login_steps(_, message: Message):
-    uid = message.from_user.id
-    if uid not in USERS:
-        return
-
-    user = USERS[uid]
-
-    if user["step"] == "api_id":
-        if message.text.isdigit():
-            user["api_id"] = int(message.text)
-            user["step"] = "api_hash"
-            await message.reply("✅ API ID saved\n\n📌 Send API HASH")
-        return
-
-    if user["step"] == "api_hash":
-        user["api_hash"] = message.text.strip()
-        user["step"] = "phone"
-        await message.reply("✅ API HASH saved\n\n📞 Send phone number (+91...)")
-        return
-
-    if user["step"] == "phone":
-        user["phone"] = message.text.strip()
-        user["client"] = Client(
-            f"user_{uid}",
-            api_id=user["api_id"],
-            api_hash=user["api_hash"],
-            in_memory=True
-        )
-        await user["client"].connect()
-        await user["client"].send_code(user["phone"])
-        user["step"] = "otp"
-        await message.reply("📨 OTP sent\n\n📌 Send OTP")
-        return
-
-    if user["step"] == "otp":
-        try:
-            await user["client"].sign_in(
-                phone_number=user["phone"],
-                phone_code=message.text.strip()
-            )
-            await login_success(uid, message)
-        except SessionPasswordNeeded:
-            user["step"] = "2fa"
-            await message.reply("🔐 2FA enabled\n\nSend your password")
-        return
-
-    if user["step"] == "2fa":
-        await user["client"].check_password(message.text.strip())
-        await login_success(uid, message)
-
-async def login_success(uid, message):
-    user = USERS[uid]
-    user["string"] = await user["client"].export_session_string()
-    await user["client"].disconnect()
-
-    user["userbot"] = Client(
-        f"active_{uid}",
-        api_id=user["api_id"],
-        api_hash=user["api_hash"],
-        session_string=user["string"]
-    )
-    await user["userbot"].start()
-
-    user["step"] = "logged"
-    await message.reply(
-        "✅ **LOGIN SUCCESSFUL 🎉**\n\n"
-        "🔓 Userbot activated\n"
-        "Now use /from command"
-    )
+# STORE FLOW DATA
+DATA = {}
 
 # ================= FORWARD FLOW =================
-
 @bot.on_message(filters.command("from") & filters.private)
-async def set_source(_, message: Message):
-    uid = message.from_user.id
-    if uid not in USERS or USERS[uid].get("step") != "logged":
-        return await message.reply("❌ Please /login first")
-
-    USERS[uid]["from"] = int(message.command[1])
-    USERS[uid]["start_id"] = None
-    await message.reply("✅ Source set\n\nSend starting MEDIA message ID")
+async def set_source(_, message):
+    try:
+        src_id = int(message.command[1])
+    except:
+        return await message.reply("❌ Usage: /from <channel_id>")
+    DATA["from"] = src_id
+    DATA["start_id"] = None
+    await message.reply("✅ Source set. Send starting media message ID:")
 
 @bot.on_message(filters.private & filters.text)
-async def set_start_id(_, message: Message):
-    uid = message.from_user.id
-    if uid in USERS and USERS[uid].get("from") and USERS[uid].get("start_id") is None:
+async def set_start_id(_, message):
+    if "from" in DATA and DATA.get("start_id") is None:
         if message.text.isdigit():
-            USERS[uid]["start_id"] = int(message.text)
-            await message.reply("✅ Start ID saved\n\nUse /to -100xxxxxxxxxx")
+            DATA["start_id"] = int(message.text)
+            await message.reply("✅ Start ID saved. Send /to <destination_id>")
 
 @bot.on_message(filters.command("to") & filters.private)
-async def set_dest(_, message: Message):
-    uid = message.from_user.id
-    if uid not in USERS:
-        return
-
-    USERS[uid]["to"] = int(message.command[1])
+async def set_destination(_, message):
+    try:
+        dest_id = int(message.command[1])
+    except:
+        return await message.reply("❌ Usage: /to <destination_id>")
+    DATA["to"] = dest_id
     await message.reply("🚀 Forwarding started...")
-    await forward_media(uid, message)
+    await forward_media(_, message)
 
-async def forward_media(uid, message):
-    user = USERS[uid]
-    client = user["userbot"]
-    src = user["from"]
-    dest = user["to"]
-    msg_id = user["start_id"]
+async def forward_media(_, message):
+    client = userbot
+    src = DATA["from"]
+    dest = DATA["to"]
+    msg_id = DATA["start_id"]
     count = 0
 
     while True:
@@ -138,12 +70,12 @@ async def forward_media(uid, message):
             if not msg:
                 break
 
-            if msg.video or msg.document or msg.photo:
+            if msg.media:
                 await msg.forward(dest)
                 count += 1
 
             msg_id += 1
-            await asyncio.sleep(0.10)
+            await asyncio.sleep(0.10)  # anti-spam
 
         except FloodWait as e:
             await asyncio.sleep(e.value)
@@ -151,7 +83,15 @@ async def forward_media(uid, message):
             msg_id += 1
             await asyncio.sleep(0.10)
 
-    await message.reply(f"✅ Done\nTotal media forwarded: {count}")
+    await message.reply(f"✅ Done!\nTotal media forwarded: {count}")
 
 # ================= RUN =================
-bot.run()
+async def main():
+    await userbot.start()
+    await bot.start()
+    print("🔥 Bot is running...")
+    await bot.idle()
+    await userbot.stop()
+
+import asyncio
+asyncio.run(main())
