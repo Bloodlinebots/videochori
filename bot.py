@@ -4,10 +4,10 @@ import asyncio
 import os
 
 # ================= CONFIG =================
-BOT_TOKEN = os.environ.get("BOT_TOKEN")  # Control bot token
-BOT_API_ID = int(os.environ.get("BOT_API_ID"))
-BOT_API_HASH = os.environ.get("BOT_API_HASH")
-STRING_SESSION = os.environ.get("STRING_SESSION")  # Userbot string session
+BOT_TOKEN =8303464927:AAF6RqNkB9AWLWWkZG433shLIgS0UXojpE0  # Control bot token
+BOT_API_ID =29587868
+BOT_API_HASH =d9fb9ba59c30ae80c25c30d5c4c26e87
+STRING_SESSION =BQIWVqIAViCVPVhoC6fMAlrb4I1nGfo3og1SHPfnW3_1yjWaMUXC-grKq0eayaJQr-0uk_VthdAebZDniAiKDpmG3MfIT40HqevdP4v6fl-Pbs5o99GN7v40lFiEUxAQyGDGt2mLrdvGJ4gIrBhgoHbwALdiUy4SHYiIwg_rMP-BIPUV9xp_WyLsYwtgpiWmNCxb91UvKR_heEgHgUuAzIQZIg9mnPpqBX14gOEUK_8btRDQwQNnOQ3FqOs3XE3qXYeClCH-1VisUbqZdK_t-MJelBqXYImBIm4t_MWJZI_Dep9nCZjJa5eP05p34u55e8gP-1sBUAb8ofemzT9AH9zgzQjDDwAAAAHlVMQ3AA  # Userbot string session
 # =========================================
 
 # BOT client (control bot)
