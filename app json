@@ -5,15 +5,15 @@
   "stack": "container",
   "env": {
     "BOT_TOKEN": {
-      "description": "BotFather bot token for control commands",
+      "description": "8303464927:AAF6RqNkB9AWLWWkZG433shLIgS0UXojpE0",
       "required": true
     },
     "BOT_API_ID": {
-      "description": "Bot API ID (for Pyrogram client)",
+      "description": "29587868",
       "required": true
     },
     "BOT_API_HASH": {
-      "description": "Bot API HASH (for Pyrogram client)",
+      "description": "d9fb9ba59c30ae80c25c30d5c4c26e87",
       "required": true
     },
     "STRING_SESSION": {
