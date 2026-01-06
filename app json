@@ -1,0 +1,24 @@
+{
+  "name": "string-session-forward-bot",
+  "description": "Telegram Forward Bot using userbot string session. Forward media from one channel to another via commands.",
+  "repository": "https://github.com/yourusername/string-session-forward-bot",
+  "stack": "container",
+  "env": {
+    "BOT_TOKEN": {
+      "description": "BotFather bot token for control commands",
+      "required": true
+    },
+    "BOT_API_ID": {
+      "description": "Bot API ID (for Pyrogram client)",
+      "required": true
+    },
+    "BOT_API_HASH": {
+      "description": "Bot API HASH (for Pyrogram client)",
+      "required": true
+    },
+    "STRING_SESSION": {
+      "description": "Userbot string session for forwarding media",
+      "required": true
+    }
+  }
+}
