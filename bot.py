@@ -1,13 +1,20 @@
+import os
+import asyncio
 from pyrogram import Client, filters
 from pyrogram.errors import FloodWait
-import asyncio
-import os
 
 # ================= CONFIG =================
-BOT_TOKEN =8303464927:AAF6RqNkB9AWLWWkZG433shLIgS0UXojpE0  # Control bot token
-BOT_API_ID =29587868
-BOT_API_HASH =d9fb9ba59c30ae80c25c30d5c4c26e87
-STRING_SESSION =BQIWVqIAViCVPVhoC6fMAlrb4I1nGfo3og1SHPfnW3_1yjWaMUXC-grKq0eayaJQr-0uk_VthdAebZDniAiKDpmG3MfIT40HqevdP4v6fl-Pbs5o99GN7v40lFiEUxAQyGDGt2mLrdvGJ4gIrBhgoHbwALdiUy4SHYiIwg_rMP-BIPUV9xp_WyLsYwtgpiWmNCxb91UvKR_heEgHgUuAzIQZIg9mnPpqBX14gOEUK_8btRDQwQNnOQ3FqOs3XE3qXYeClCH-1VisUbqZdK_t-MJelBqXYImBIm4t_MWJZI_Dep9nCZjJa5eP05p34u55e8gP-1sBUAb8ofemzT9AH9zgzQjDDwAAAAHlVMQ3AA  # Userbot string session
+# Heroku environment variables se load kar rahe hain
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+BOT_API_ID = os.environ.get("BOT_API_ID")
+BOT_API_HASH = os.environ.get("BOT_API_HASH")
+STRING_SESSION = os.environ.get("STRING_SESSION")
+
+# Safety check
+if not BOT_TOKEN or not BOT_API_ID or not BOT_API_HASH or not STRING_SESSION:
+    raise Exception("❌ One or more environment variables are missing! Check BOT_TOKEN, BOT_API_ID, BOT_API_HASH, STRING_SESSION")
+
+BOT_API_ID = int(BOT_API_ID)
 # =========================================
 
 # BOT client (control bot)
@@ -34,7 +41,7 @@ DATA = {}
 async def set_source(_, message):
     try:
         src_id = int(message.command[1])
-    except:
+    except (IndexError, ValueError):
         return await message.reply("❌ Usage: /from <channel_id>")
     DATA["from"] = src_id
     DATA["start_id"] = None
@@ -46,16 +53,20 @@ async def set_start_id(_, message):
         if message.text.isdigit():
             DATA["start_id"] = int(message.text)
             await message.reply("✅ Start ID saved. Send /to <destination_id>")
+        else:
+            await message.reply("❌ Please send a valid number for starting message ID.")
 
 @bot.on_message(filters.command("to") & filters.private)
 async def set_destination(_, message):
     try:
         dest_id = int(message.command[1])
-    except:
+    except (IndexError, ValueError):
         return await message.reply("❌ Usage: /to <destination_id>")
+    if "from" not in DATA or DATA.get("start_id") is None:
+        return await message.reply("❌ Please set source and start ID first using /from and message ID.")
     DATA["to"] = dest_id
     await message.reply("🚀 Forwarding started...")
-    await forward_media(_, message)
+    asyncio.create_task(forward_media(_, message))
 
 async def forward_media(_, message):
     client = userbot
@@ -79,7 +90,8 @@ async def forward_media(_, message):
 
         except FloodWait as e:
             await asyncio.sleep(e.value)
-        except Exception:
+        except Exception as e:
+            print(f"⚠ Skipping message {msg_id}: {e}")
             msg_id += 1
             await asyncio.sleep(0.10)
 
@@ -93,5 +105,5 @@ async def main():
     await bot.idle()
     await userbot.stop()
 
-import asyncio
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
